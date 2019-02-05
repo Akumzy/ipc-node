@@ -3,7 +3,7 @@ import { spawn, ChildProcess } from 'child_process'
 
 class IPC extends EventEmitter {
   binPath: string
-  go: ChildProcess
+  go: ChildProcess | null
   closed: boolean
   constructor(binPath: string) {
     super()
