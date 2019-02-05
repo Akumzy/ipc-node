@@ -1,0 +1,29 @@
+{
+  "name": "ipc-node",
+  "version": "0.0.1",
+  "description": "This package is an IPC implementation between Node and its child process (Golang binary) using the stdin / stdout as the transport.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Akumzy/ipc-node.git"
+  },
+  "keywords": [
+    "Node",
+    "Golang",
+    "child_process",
+    "IPC"
+  ],
+  "author": {
+    "email": "akumaisaacakuma@gmail.com",
+    "name": "Akuma Isaac Akuma",
+    "url": "http://akumzy.com"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Akumzy/ipc-node/issues"
+  },
+  "homepage": "https://github.com/Akumzy/ipc-node#readme"
+}
