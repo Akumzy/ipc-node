@@ -2,12 +2,22 @@
 
 This package is a simple IPC implementation between Node and its child process (Golang binary) using the `stdin` / `stdout` as the transport.
 
+- Installation
+
+```bash
+
+  npm install ipc-node-go
+  #or
+  yarn add ipc-node-go
+
+```
+
 - Useage
 
 ```js
-const IPC = require('ipc-node')
+const IPC = require('ipc-node-go')
 //or
-import IPC from 'ipc-node'
+import IPC from 'ipc-node-go'
 
 const ipc = new IPC('path-to-golang-bin')
 // start the child process
