@@ -1,10 +1,10 @@
 {
   "name": "ipc-node-go",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "This package is an IPC implementation between Node and its child process (Golang binary) using the stdin / stdout as the transport.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc -p ./tsconfig.json"
   },
   "repository": {
     "type": "git",
@@ -14,7 +14,8 @@
     "Node",
     "Golang",
     "child_process",
-    "IPC"
+    "IPC",
+    "ipc"
   ],
   "author": {
     "email": "akumaisaacakuma@gmail.com",
@@ -25,5 +26,8 @@
   "bugs": {
     "url": "https://github.com/Akumzy/ipc-node/issues"
   },
-  "homepage": "https://github.com/Akumzy/ipc-node#readme"
+  "homepage": "https://github.com/Akumzy/ipc-node#readme",
+  "devDependencies": {
+    "@types/node": "^10.12.21"
+  }
 }

@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "noImplicitAny": true,
+    "removeComments": true,
+    "sourceMap": false,
+    "types": ["node"],
+    "declaration": true
+  },
+  "files": ["index.ts"]
+}

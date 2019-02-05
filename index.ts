@@ -1,23 +1,26 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-const events_1 = require('events')
-const child_process_1 = require('child_process')
-class IPC extends events_1.EventEmitter {
-  constructor(binPath) {
+import { EventEmitter } from 'events'
+import { spawn, ChildProcess } from 'child_process'
+
+class IPC extends EventEmitter {
+  binPath: string
+  go: ChildProcess
+  closed: boolean
+  constructor(binPath: string) {
     super()
     this.binPath = binPath
     this.go = null
     this.closed = false
   }
-  init(arg = []) {
+  public init(arg: string[] = []) {
     this.closed = false
     const self = this
-    const go = child_process_1.spawn(this.binPath, arg)
+    const go = spawn(this.binPath, arg)
     this.go = go
     go.stderr.setEncoding('utf8')
     go.stdout.setEncoding('utf8')
     go.stderr.on('error', e => self.emit('log', e))
     go.stderr.on('data', e => self.emit('log', e))
+
     let outBuffer = ''
     go.stdout.on('data', s => {
       if (isJSON(s)) {
@@ -28,6 +31,7 @@ class IPC extends events_1.EventEmitter {
           let { error, data, event } = payload
           self.emit(event, data, error)
         }
+
         return
       }
       outBuffer += s
@@ -45,18 +49,19 @@ class IPC extends events_1.EventEmitter {
     go.once('close', _ => self.emit('close'))
     return this
   }
-  kill() {
+
+  public kill() {
     this.closed = true
     if (this.go) this.go.kill()
   }
-  send(eventType, data) {
+  public send(eventType: string, data: any) {
     this._send(eventType, data, false)
   }
-  _send(eventType, data, SR) {
+  private _send(eventType: string, data: any, SR: boolean) {
     if (!this.go || this.closed) return
     if (this.go.killed) return
     if (this.go && this.go.stdin) {
-      let payload
+      let payload: string
       if (typeof data === 'object' || Array.isArray(data)) payload = JSON.stringify(data)
       else payload = data
       let d = JSON.stringify({
@@ -69,7 +74,7 @@ class IPC extends events_1.EventEmitter {
       }
     }
   }
-  sendAndReceive(eventName, data, cb) {
+  public sendAndReceive(eventName: string, data: any, cb: (error: Error, data: any) => void) {
     this._send(eventName, data, true)
     let rc = eventName + '___RC___'
     this.on(rc, (data, error) => {
@@ -77,7 +82,7 @@ class IPC extends events_1.EventEmitter {
     })
   }
 }
-function parseJSON(s) {
+function parseJSON(s: string) {
   try {
     let data = s.replace(/}\\n/g, '}')
     if (data.endsWith(',')) {
@@ -89,7 +94,7 @@ function parseJSON(s) {
     return null
   }
 }
-function isJSON(s) {
+function isJSON(s: string) {
   try {
     s = s.endsWith('}\\n') ? s.replace('}\\n', '}') : s
     JSON.parse(s)
@@ -98,4 +103,4 @@ function isJSON(s) {
     return false
   }
 }
-exports.default = IPC
+export default IPC
