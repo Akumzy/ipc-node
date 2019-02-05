@@ -57,6 +57,11 @@ class IPC extends EventEmitter {
   public send(eventType: string, data: any) {
     this._send(eventType, data, false)
   }
+
+  public sendRaw(eventType: string, data: any, isSendAndReceive = false) {
+    this._send(eventType, data, isSendAndReceive)
+  }
+
   private _send(eventType: string, data: any, SR: boolean) {
     if (!this.go || this.closed) return
     if (this.go.killed) return
