@@ -82,7 +82,7 @@ class IPC extends EventEmitter {
   public sendAndReceive(eventName: string, data: any, cb: (error: Error, data: any) => void) {
     this._send(eventName, data, true)
     let rc = eventName + '___RC___'
-    this.on(rc, (data, error) => {
+    this.once(rc, (data, error) => {
       if (typeof cb === 'function') cb(error, data)
     })
   }
