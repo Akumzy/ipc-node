@@ -127,4 +127,4 @@ function isJSON(s: string) {
     return false
   }
 }
-export = IPC
+export default IPC
