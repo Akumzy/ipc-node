@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
 const child_process_1 = require("child_process");
 class IPC extends events_1.EventEmitter {
@@ -42,7 +41,10 @@ class IPC extends events_1.EventEmitter {
                 outBuffer = '';
             }
         });
-        go.once('close', _ => self.emit('close'));
+        go.once('close', _ => {
+            self.closed = true;
+            self.emit('close');
+        });
         return this;
     }
     kill() {
@@ -57,30 +59,35 @@ class IPC extends events_1.EventEmitter {
         this._send(eventType, data, isSendAndReceive);
     }
     _send(eventType, data, SR) {
-        if (!this.go || this.closed)
-            return;
-        if (this.go.killed)
-            return;
-        if (this.go && this.go.stdin) {
-            let payload;
-            if (typeof data === 'object' || Array.isArray(data))
-                payload = JSON.stringify(data);
-            else
-                payload = data;
-            let d = JSON.stringify({
-                event: eventType,
-                data: payload,
-                SR: !!SR
-            });
-            if (this.go.stdin) {
-                this.go.stdin.write(d + '\n');
+        try {
+            if (!this.go || this.closed)
+                return;
+            if (this.go.killed || !this.go.connected)
+                return;
+            if (this.go && this.go.stdin) {
+                let payload;
+                if (typeof data === 'object' || Array.isArray(data))
+                    payload = JSON.stringify(data);
+                else
+                    payload = data;
+                let d = JSON.stringify({
+                    event: eventType,
+                    data: payload,
+                    SR: !!SR
+                });
+                if (this.go.stdin) {
+                    this.go.stdin.write(d + '\n');
+                }
             }
+        }
+        catch (error) {
+            this.emit('error', error);
         }
     }
     sendAndReceive(eventName, data, cb) {
         this._send(eventName, data, true);
         let rc = eventName + '___RC___';
-        this.on(rc, (data, error) => {
+        this.once(rc, (data, error) => {
             if (typeof cb === 'function')
                 cb(error, data);
         });
@@ -90,10 +97,9 @@ function parseJSON(s) {
     try {
         let data = s.replace(/}\\n/g, '}');
         if (data.endsWith(',')) {
-            data = data.slice(0, -1);
+            data = data.slice(0, -1).trim();
         }
-        let payload = JSON.parse(`[${data}]`);
-        return payload[0];
+        return JSON.parse(data);
     }
     catch (error) {
         return null;
@@ -109,4 +115,4 @@ function isJSON(s) {
         return false;
     }
 }
-exports.default = IPC;
+module.exports = IPC;

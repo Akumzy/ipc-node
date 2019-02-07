@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import { ChildProcess } from 'child_process';
 declare class IPC extends EventEmitter {
     binPath: string;
-    go: ChildProcess;
+    go: ChildProcess | null;
     closed: boolean;
     constructor(binPath: string);
     init(arg?: string[]): this;
@@ -12,4 +12,4 @@ declare class IPC extends EventEmitter {
     private _send;
     sendAndReceive(eventName: string, data: any, cb: (error: Error, data: any) => void): void;
 }
-export default IPC;
+export = IPC;
