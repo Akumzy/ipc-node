@@ -8,6 +8,10 @@ class IPC extends events_1.EventEmitter {
         this.go = null;
         this.closed = false;
     }
+    /**
+     * Start the child process
+     * @param arg
+     */
     init(arg = []) {
         this.closed = false;
         const self = this;
@@ -15,29 +19,14 @@ class IPC extends events_1.EventEmitter {
         this.go = go;
         go.stderr.setEncoding('utf8');
         go.stdout.setEncoding('utf8');
-        go.stderr.on('error', e => self.emit('log', e));
+        // emit the errors
+        go.stderr.on('error', e => self.emit('error', e));
         go.stderr.on('data', e => self.emit('log', e));
         let outBuffer = '';
         go.stdout.on('data', s => {
-            if (isJSON(s)) {
-                s.endsWith('}\\n') ? s.replace('}\\n', '}') : s;
-                let payload = parseJSON(s);
-                if (typeof payload === 'object' && payload !== null) {
-                    self.emit('data', payload);
-                    let { error, data, event } = payload;
-                    self.emit(event, data, error);
-                }
-                return;
-            }
             outBuffer += s;
             if (s.endsWith('}\\n')) {
-                let d = outBuffer.replace('}\\n', '}');
-                let payload = parseJSON(d);
-                if (typeof payload === 'object' && payload !== null) {
-                    self.emit('data', payload);
-                    let { error, data, event } = payload;
-                    self.emit(event, data, error);
-                }
+                self._processData(outBuffer);
                 outBuffer = '';
             }
         });
@@ -47,35 +36,63 @@ class IPC extends events_1.EventEmitter {
         });
         return this;
     }
+    _processData(payload) {
+        let _data = this.parseJSON(payload);
+        if (Array.isArray(_data)) {
+            for (const item of _data) {
+                this.emit('data', _data);
+                let { error, data, event } = item;
+                this.emit(event, data, error);
+            }
+        }
+    }
+    /**
+     * Kill the child process
+     */
     kill() {
         this.closed = true;
         if (this.go)
             this.go.kill();
     }
-    send(eventType, data) {
-        this._send(eventType, data, false);
+    /**
+     * Send message to `Golang` process
+     * @param event
+     * @param data
+     */
+    send(event, data) {
+        this._send(event, data, false);
     }
-    sendRaw(eventType, data, isSendAndReceive = false) {
-        this._send(eventType, data, isSendAndReceive);
+    /**
+     * sendRaw gives your access to a third `boolean` argument which
+     * is used to determine if this is a sendAndReceive action
+     */
+    sendRaw(event, data, isSendAndReceive = false) {
+        this._send(event, data, isSendAndReceive);
     }
-    _send(eventType, data, SR) {
+    /**
+     *
+     * @param event
+     * @param data
+     * @param SR this tells `Go` process if this message needs an acknowledgement
+     */
+    _send(event, data, SR) {
         try {
             if (!this.go || this.closed)
                 return;
-            if (this.go.killed || !this.go.connected)
-                return;
-            if (this.go && this.go.stdin) {
+            if (this.go && this.go.stdin.writable) {
                 let payload;
                 if (typeof data === 'object' || Array.isArray(data))
                     payload = JSON.stringify(data);
                 else
                     payload = data;
+                // We are converting this to `JSON` this to preserve the
+                // data types
                 let d = JSON.stringify({
-                    event: eventType,
+                    event,
                     data: payload,
                     SR: !!SR
                 });
-                if (this.go.stdin) {
+                if (this.go.stdin.writable) {
                     this.go.stdin.write(d + '\n');
                 }
             }
@@ -84,35 +101,33 @@ class IPC extends events_1.EventEmitter {
             this.emit('error', error);
         }
     }
-    sendAndReceive(eventName, data, cb) {
-        this._send(eventName, data, true);
-        let rc = eventName + '___RC___';
+    /**
+     *  Send and receive an acknowledgement through
+     * a callback from `Go` process
+     * @param event
+     * @param data
+     * @param cb
+     */
+    sendAndReceive(event, data, cb) {
+        this._send(event, data, true);
+        let rc = event + '___RC___';
         this.once(rc, (data, error) => {
             if (typeof cb === 'function')
                 cb(error, data);
         });
     }
-}
-function parseJSON(s) {
-    try {
-        let data = s.replace(/}\\n/g, '}');
-        if (data.endsWith(',')) {
-            data = data.slice(0, -1).trim();
+    parseJSON(s) {
+        try {
+            let data = s.replace(/}\\n/g, '},');
+            if (data.endsWith(',')) {
+                data = data.slice(0, -1).trim();
+            }
+            return JSON.parse(`[${data}]`);
         }
-        return JSON.parse(data);
-    }
-    catch (error) {
-        return null;
-    }
-}
-function isJSON(s) {
-    try {
-        s = s.endsWith('}\\n') ? s.replace('}\\n', '}') : s;
-        JSON.parse(s);
-        return true;
-    }
-    catch (error) {
-        return false;
+        catch (error) {
+            this.emit('parse-error', error);
+            return null;
+        }
     }
 }
 module.exports = IPC;

@@ -1,16 +1,23 @@
 import { EventEmitter } from 'events'
 import { spawn, ChildProcess } from 'child_process'
-
+interface GoPayload {
+  event: string
+  data: any
+  error: any
+  SR: boolean
+}
 class IPC extends EventEmitter {
-  binPath: string
   go: ChildProcess | null
   closed: boolean
-  constructor(binPath: string) {
+  constructor(private binPath: string) {
     super()
-    this.binPath = binPath
     this.go = null
     this.closed = false
   }
+  /**
+   * Start the child process
+   * @param arg
+   */
   public init(arg: string[] = []) {
     this.closed = false
     const self = this
@@ -19,30 +26,14 @@ class IPC extends EventEmitter {
     go.stderr.setEncoding('utf8')
     go.stdout.setEncoding('utf8')
     // emit the errors
-    go.stderr.on('error', e => self.emit('log', e))
+    go.stderr.on('error', e => self.emit('error', e))
     go.stderr.on('data', e => self.emit('log', e))
 
     let outBuffer = ''
     go.stdout.on('data', s => {
-      if (isJSON(s)) {
-        s.endsWith('}\\n') ? s.replace('}\\n', '}') : s
-        let payload = parseJSON(s)
-        if (typeof payload === 'object' && payload !== null) {
-          self.emit('data', payload)
-          let { error, data, event } = payload
-          self.emit(event, data, error)
-        }
-        return
-      }
       outBuffer += s
       if (s.endsWith('}\\n')) {
-        let d = outBuffer.replace('}\\n', '}')
-        let payload = parseJSON(d)
-        if (typeof payload === 'object' && payload !== null) {
-          self.emit('data', payload)
-          let { error, data, event } = payload
-          self.emit(event, data, error)
-        }
+        self._processData(outBuffer)
         outBuffer = ''
       }
     })
@@ -53,41 +44,60 @@ class IPC extends EventEmitter {
     })
     return this
   }
-
+  private _processData(payload: string) {
+    let _data = this.parseJSON(payload)
+    if (Array.isArray(_data)) {
+      for (const item of _data) {
+        this.emit('data', _data)
+        let { error, data, event } = item
+        this.emit(event, data, error)
+      }
+    }
+  }
+  /**
+   * Kill the child process
+   */
   public kill() {
     this.closed = true
     if (this.go) this.go.kill()
   }
   /**
-   *
-   * @param eventType
+   * Send message to `Golang` process
+   * @param event
    * @param data
    */
-  public send(eventType: string, data: any) {
-    this._send(eventType, data, false)
+  public send(event: string, data: any) {
+    this._send(event, data, false)
   }
   /**
    * sendRaw gives your access to a third `boolean` argument which
    * is used to determine if this is a sendAndReceive action
    */
-  public sendRaw(eventType: string, data: any, isSendAndReceive = false) {
-    this._send(eventType, data, isSendAndReceive)
+  public sendRaw(event: string, data: any, isSendAndReceive = false) {
+    this._send(event, data, isSendAndReceive)
   }
 
-  private _send(eventType: string, data: any, SR: boolean) {
+  /**
+   *
+   * @param event
+   * @param data
+   * @param SR this tells `Go` process if this message needs an acknowledgement
+   */
+  private _send(event: string, data: any, SR: boolean) {
     try {
       if (!this.go || this.closed) return
-      if (this.go.killed || !this.go.connected) return
-      if (this.go && this.go.stdin) {
+      if (this.go && this.go.stdin.writable) {
         let payload: string
         if (typeof data === 'object' || Array.isArray(data)) payload = JSON.stringify(data)
         else payload = data
+        // We are converting this to `JSON` this to preserve the
+        // data types
         let d = JSON.stringify({
-          event: eventType,
+          event,
           data: payload,
           SR: !!SR
         })
-        if (this.go.stdin) {
+        if (this.go.stdin.writable) {
           this.go.stdin.write(d + '\n')
         }
       }
@@ -96,35 +106,31 @@ class IPC extends EventEmitter {
     }
   }
   /**
-   * Send and receive an acknowledgement through
-   * a callback
+   *  Send and receive an acknowledgement through
+   * a callback from `Go` process
+   * @param event
+   * @param data
+   * @param cb
    */
-  public sendAndReceive(eventName: string, data: any, cb: (error: Error, data: any) => void) {
-    this._send(eventName, data, true)
-    let rc = eventName + '___RC___'
+  public sendAndReceive(event: string, data: any, cb: (error: Error, data: any) => void) {
+    this._send(event, data, true)
+    let rc = event + '___RC___'
     this.once(rc, (data, error) => {
       if (typeof cb === 'function') cb(error, data)
     })
   }
-}
-function parseJSON(s: string) {
-  try {
-    let data = s.replace(/}\\n/g, '}')
-    if (data.endsWith(',')) {
-      data = data.slice(0, -1).trim()
+  private parseJSON(s: string): GoPayload[] | null {
+    try {
+      let data = s.replace(/}\\n/g, '},')
+      if (data.endsWith(',')) {
+        data = data.slice(0, -1).trim()
+      }
+      return JSON.parse(`[${data}]`)
+    } catch (error) {
+      this.emit('parse-error', error)
+      return null
     }
-    return JSON.parse(data)
-  } catch (error) {
-    return null
   }
 }
-function isJSON(s: string) {
-  try {
-    s = s.endsWith('}\\n') ? s.replace('}\\n', '}') : s
-    JSON.parse(s)
-    return true
-  } catch (error) {
-    return false
-  }
-}
-export default IPC
+
+export = IPC

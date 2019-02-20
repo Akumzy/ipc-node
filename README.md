@@ -37,3 +37,5 @@ ipc.sendAndReceive('get-service-info', { id: 1 }, (error, data) => {
 ```
 
 IPC is an EventEmitter.
+
+MIT License
