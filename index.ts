@@ -21,7 +21,7 @@ class IPC extends EventEmitter {
   public init(arg: string[] = []) {
     this.closed = false
     const self = this
-    const go = spawn(this.binPath, arg)
+    const go = spawn(this.binPath, arg, {})
     this.go = go
     go.stderr.setEncoding('utf8')
     go.stdout.setEncoding('utf8')
@@ -42,6 +42,7 @@ class IPC extends EventEmitter {
       self.closed = true
       self.emit('close')
     })
+    process.on('beforeExit', () => this.kill())
     return this
   }
   private _processData(payload: string) {
