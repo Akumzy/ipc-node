@@ -49,7 +49,7 @@ class IPC extends EventEmitter {
     let _data = this.parseJSON(payload)
     if (Array.isArray(_data)) {
       for (const item of _data) {
-        this.emit('data', _data)
+        this.emit('data', item)
         let { error, data, event } = item
         this.emit(event, data, error)
       }
@@ -59,8 +59,12 @@ class IPC extends EventEmitter {
    * Kill the child process
    */
   public kill() {
-    this.closed = true
-    if (this.go) this.go.kill()
+    try {
+      this.closed = true
+     this.go.kill()
+    } catch (error) {
+    }
+    
   }
   /**
    * Send message to `Golang` process
