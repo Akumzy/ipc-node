@@ -61,10 +61,8 @@ class IPC extends EventEmitter {
   public kill() {
     try {
       this.closed = true
-     this.go.kill()
-    } catch (error) {
-    }
-    
+      this.go.kill()
+    } catch (error) {}
   }
   /**
    * Send message to `Golang` process
@@ -122,6 +120,19 @@ class IPC extends EventEmitter {
     let rc = event + '___RC___'
     this.once(rc, (data, error) => {
       if (typeof cb === 'function') cb(error, data)
+    })
+  }
+  /**
+   *  Receive and send back acknowledgement/data to `GO`
+   * a callback from `Go` process
+   * @param event
+   * @param data
+   * @param cb
+   */
+  public onReceiveAnSend(event: string, cb: (channel: string, data: any) => void) {
+    let channel = event + '___RS___'
+    this.once(event, data => {
+      if (typeof cb === 'function') cb(channel, data)
     })
   }
   private parseJSON(s: string): GoPayload[] | null {
