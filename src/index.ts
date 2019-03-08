@@ -60,7 +60,7 @@ class IPC extends EventEmitter {
    */
   public kill() {
     try {
-      this.send('__exit__', null)
+      this.send('___EXIT___', null)
       this.closed = true
       this.go.kill()
     } catch (error) {}
