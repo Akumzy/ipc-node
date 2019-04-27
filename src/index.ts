@@ -70,7 +70,7 @@ class IPC extends EventEmitter {
    * @param event
    * @param data
    */
-  public send(event: string, data: any) {
+  public send(event: string, data:any = undefined) {
     this._send(event, data, false)
   }
   /**
