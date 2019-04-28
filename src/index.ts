@@ -13,6 +13,12 @@ class IPC extends EventEmitter {
     super()
     this.go = null
     this.closed = false
+    /**
+     * The `Golang` process will be pinging at every 20 seconds
+     * and will wait another 20 seconds for reply via `pong` event name
+     * else it will kill it's process.
+     */
+    this.on('ping', () => this.send('pong'))
   }
   /**
    * Start the child process
@@ -70,7 +76,7 @@ class IPC extends EventEmitter {
    * @param event
    * @param data
    */
-  public send(event: string, data:any = undefined) {
+  public send(event: string, data: any = undefined) {
     this._send(event, data, false)
   }
   /**
@@ -92,7 +98,8 @@ class IPC extends EventEmitter {
       if (!this.go || this.closed) return
       if (this.go && this.go.stdin.writable) {
         let payload: string
-        if (typeof data === 'object' || Array.isArray(data)) payload = JSON.stringify(data)
+        if (typeof data === 'object' || Array.isArray(data))
+          payload = JSON.stringify(data)
         else payload = data
         // We are converting this to `JSON` this to preserve the
         // data types
@@ -116,7 +123,11 @@ class IPC extends EventEmitter {
    * @param data
    * @param cb
    */
-  public sendAndReceive(event: string, data: any, cb: (error: Error, data: any) => void) {
+  public sendAndReceive(
+    event: string,
+    data: any,
+    cb: (error: Error, data: any) => void
+  ) {
     this._send(event, data, true)
     let rc = event + '___RC___'
     this.once(rc, (data, error) => {
@@ -130,7 +141,10 @@ class IPC extends EventEmitter {
    * @param data
    * @param cb
    */
-  public onReceiveAnSend(event: string, cb: (channel: string, data: any) => void) {
+  public onReceiveAnSend(
+    event: string,
+    cb: (channel: string, data: any) => void
+  ) {
     let channel = event + '___RS___'
     this.once(event, data => {
       if (typeof cb === 'function') cb(channel, data)
