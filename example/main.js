@@ -1,6 +1,6 @@
 const ipc = require('../dist/index')
 const { join } = require('path')
-const io = new ipc(join(__dirname, './go-binary'))
+const io = new ipc(join(__dirname, './compired-go-binary'))
 
 io.init()
 
