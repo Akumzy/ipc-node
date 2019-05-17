@@ -18,7 +18,9 @@ class IPC extends EventEmitter {
      * and will wait another 20 seconds for reply via `pong` event name
      * else it will kill it's process.
      */
-    this.on('ping', () => this.send('pong'))
+    this.onReceiveAnSend('ping', (channel) => {
+      this.send(channel)
+    })
   }
   /**
    * Start the child process
@@ -69,7 +71,7 @@ class IPC extends EventEmitter {
       this.send('___EXIT___', null)
       this.closed = true
       this.go.kill()
-    } catch (error) {}
+    } catch (error) { }
   }
   /**
    * Send message to `Golang` process
@@ -146,7 +148,7 @@ class IPC extends EventEmitter {
     cb: (channel: string, data: any) => void
   ) {
     let channel = event + '___RS___'
-    this.once(event, data => {
+    this.on(event, data => {
       if (typeof cb === 'function') cb(channel, data)
     })
   }
