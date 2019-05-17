@@ -18,9 +18,9 @@ class IPC extends EventEmitter {
      * and will wait another 20 seconds for reply via `pong` event name
      * else it will kill it's process.
      */
-    this.onReceiveAnSend('ping', (channel) => {
-      this.send(channel)
-    })
+    this.on('ping', () =>
+      this.send('pong')
+    )
   }
   /**
    * Start the child process

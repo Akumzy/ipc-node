@@ -1,6 +1,6 @@
 {
   "name": "ipc-node-go",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "An IPC implementation between Node and its child process (Golang binary) using the stdin / stdout as the transport.",
   "main": "dist/index.js",
   "scripts": {
